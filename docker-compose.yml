@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  blacksentinel-vision:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bsv-platform
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BSV_API_URL=${BSV_API_URL:-https://api.blacksentinel.com}
+      - NEXT_PUBLIC_BSV_WS_URL=${BSV_WS_URL:-wss://ws.blacksentinel.com}
+      - NEXT_PUBLIC_BSV_ENV=${BSV_ENV:-production}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - bsv-network
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: bsv-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - bsv-network
+
+  # Optional: PostgreSQL for persistence
+  postgres:
+    image: postgres:16-alpine
+    container_name: bsv-postgres
+    environment:
+      POSTGRES_DB: blacksentinel_vision
+      POSTGRES_USER: bsv_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - bsv-network
+
+volumes:
+  redis-data:
+  postgres-data:
+
+networks:
+  bsv-network:
+    driver: bridge

@@ -1,0 +1,18 @@
+# BLACKSENTINEL VISION
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.git/
+.vscode/
+*.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
