@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blacksentinel-vision
+  namespace: bsv-production
+  labels:
+    app: blacksentinel-vision
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: blacksentinel-vision
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: blacksentinel-vision
+    spec:
+      containers:
+        - name: bsv
+          image: blacksentinel-vision:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NEXT_PUBLIC_BSV_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: bsv-config
+                  key: api-url
+            - name: NEXT_PUBLIC_BSV_WS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: bsv-config
+                  key: ws-url
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: bsv-secrets
+                  key: database-url
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: bsv-registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blacksentinel-vision-service
+  namespace: bsv-production
+spec:
+  selector:
+    app: blacksentinel-vision
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: blacksentinel-vision-hpa
+  namespace: bsv-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: blacksentinel-vision
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
