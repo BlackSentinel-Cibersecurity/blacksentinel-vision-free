@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, Search, Settings, User, AlertTriangle, ChevronDown, ExternalLink, X, LogOut } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -30,27 +30,61 @@ const notifications = [
   { id: 5, title: "New APT29 Campaign Identified", severity: "high", source: "Threat Actor Intelligence", time: "12h ago", action: "actors", read: true },
 ];
 
+function subscribeToAuthStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getUserNameSnapshot(): string {
+  const stored = localStorage.getItem("bsv_auth");
+  if (!stored) return "Admin";
+  try {
+    const auth = JSON.parse(stored);
+    return auth.user?.name || auth.user?.username || "Admin";
+  } catch {
+    return "Admin";
+  }
+}
+
+function getUserNameServerSnapshot(): string {
+  return "Admin";
+}
+
+function getUserRoleSnapshot(): string {
+  const stored = localStorage.getItem("bsv_auth");
+  if (!stored) return "Administrator";
+  try {
+    const auth = JSON.parse(stored);
+    const role = auth.user?.role;
+    return role ? role.charAt(0).toUpperCase() + role.slice(1) : "Administrator";
+  } catch {
+    return "Administrator";
+  }
+}
+
+function getUserRoleServerSnapshot(): string {
+  return "Administrator";
+}
+
 export default function Header({ activeModule, onModuleChange }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [userName, setUserName] = useState("Admin");
-  const [userRole, setUserRole] = useState("Administrator");
+  // Derived from an external, mutable source (localStorage), so this reads
+  // via useSyncExternalStore rather than copying it into local state in an
+  // effect.
+  const userName = useSyncExternalStore(
+    subscribeToAuthStorage,
+    getUserNameSnapshot,
+    getUserNameServerSnapshot
+  );
+  const userRole = useSyncExternalStore(
+    subscribeToAuthStorage,
+    getUserRoleSnapshot,
+    getUserRoleServerSnapshot
+  );
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("bsv_auth");
-    if (stored) {
-      try {
-        const auth = JSON.parse(stored);
-        if (auth.user) {
-          setUserName(auth.user.name || auth.user.username);
-          setUserRole(auth.user.role.charAt(0).toUpperCase() + auth.user.role.slice(1));
-        }
-      } catch {}
-    }
-  }, []);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

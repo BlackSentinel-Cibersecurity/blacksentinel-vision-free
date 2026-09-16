@@ -6,7 +6,7 @@
 // all (not just disabled behind a flag). See blacksentinel.io for the full
 // platform.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import GlobalDashboard from "@/components/dashboard/GlobalDashboard";
@@ -33,28 +33,40 @@ const modules: Record<string, React.ReactNode> = {
   "digital-risk": <DigitalRiskProtection />,
 };
 
-function AuthCheck({ children }: { children: React.ReactNode }) {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+function subscribeToAuthStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem("bsv_auth");
-    if (!stored) {
-      setAuthenticated(false);
-      return;
-    }
-    try {
-      const auth = JSON.parse(stored);
-      if (auth.expires < Date.now()) {
-        localStorage.removeItem("bsv_auth");
-        setAuthenticated(false);
-      } else {
-        setAuthenticated(true);
-      }
-    } catch {
+function getAuthSnapshot(): boolean | null {
+  const stored = localStorage.getItem("bsv_auth");
+  if (!stored) return false;
+  try {
+    const auth = JSON.parse(stored);
+    if (auth.expires < Date.now()) {
       localStorage.removeItem("bsv_auth");
-      setAuthenticated(false);
+      return false;
     }
-  }, []);
+    return true;
+  } catch {
+    localStorage.removeItem("bsv_auth");
+    return false;
+  }
+}
+
+function getAuthServerSnapshot(): boolean | null {
+  return null;
+}
+
+function AuthCheck({ children }: { children: React.ReactNode }) {
+  // Reads an external, mutable source of truth (localStorage) rather than
+  // deriving state that lives in React, so this syncs via
+  // useSyncExternalStore instead of computing it in an effect.
+  const authenticated = useSyncExternalStore(
+    subscribeToAuthStorage,
+    getAuthSnapshot,
+    getAuthServerSnapshot
+  );
 
   useEffect(() => {
     if (authenticated === false) {
