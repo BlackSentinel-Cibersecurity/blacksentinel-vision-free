@@ -21,7 +21,18 @@ import jwt from "jsonwebtoken";
 // ============================================================================
 
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET && process.env.NODE_ENV === "production") {
+// Skip the check during `next build` itself (NEXT_PHASE is set to
+// "phase-production-build" only for that build-time pass, never when the
+// server actually starts/serves requests via `next start`): this module is
+// imported while `next build` collects page data, before any real request
+// exists and before runtime secrets are necessarily injected, so throwing
+// during that pass would fail every build/CI run instead of only unsafe
+// production requests. The runtime guard below is unchanged.
+if (
+  !JWT_SECRET &&
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PHASE !== "phase-production-build"
+) {
   throw new Error(
     "JWT_SECRET is required in production. Refusing to start with no signing secret.",
   );

@@ -155,10 +155,23 @@ function AlertFeed() {
   );
 }
 
+// Deterministic pseudo-random generator for mock sparkline data. Renders
+// must be pure, so this avoids Math.random() (which would produce a new,
+// unstable series on every re-render) while still giving each point
+// realistic-looking variance.
+function pseudoRandom(seed: number): number {
+  const x = Math.sin(seed) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function mockSeries(seed: number, length: number, base: number, amplitude: number): number[] {
+  return Array.from({ length }, (_, i) => base + pseudoRandom(seed * 1000 + i) * amplitude);
+}
+
 export default function GlobalDashboard() {
-  const chartData1 = useMemo(() => Array.from({ length: 24 }, () => Math.random() * 100 + 20), []);
-  const chartData2 = useMemo(() => Array.from({ length: 24 }, () => Math.random() * 80 + 10), []);
-  const chartData3 = useMemo(() => Array.from({ length: 24 }, () => Math.random() * 60 + 30), []);
+  const chartData1 = useMemo(() => mockSeries(1, 24, 20, 100), []);
+  const chartData2 = useMemo(() => mockSeries(2, 24, 10, 80), []);
+  const chartData3 = useMemo(() => mockSeries(3, 24, 30, 60), []);
 
   const stats = [
     { label: "Active IOCs", value: 2847392, icon: Fingerprint, color: "#FF6B00", change: "+12.3%", up: true },

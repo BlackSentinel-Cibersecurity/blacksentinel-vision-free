@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   blacksentinel-vision:
+    image: ghcr.io/blacksentinel-cibersecurity/blacksentinel-vision-free:latest
     build:
       context: .
       dockerfile: Dockerfile
