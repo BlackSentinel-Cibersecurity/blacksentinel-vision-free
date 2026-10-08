@@ -5,7 +5,7 @@
 > just flag-disabled: Dark Web Intel, AI Correlation, Threat Predictions,
 > Attack Paths, AI Copilot, and Knowledge Graph are **not included in
 > this repository's source at all**. For the full platform with those
-> modules, see [blacksentinel.io](https://blacksentinel.io).
+> modules, see [blacksentinel.tech](https://blacksentinel.tech).
 >
 > Note: this app doesn't have a real per-tenant backend yet (only
 > `/api/auth` and `/api/health` are real routes — everything else renders
@@ -49,3 +49,22 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## Before you run it
+
+- This is a **technical preview** and the open-source edition of the product. It comes with no warranty and no service-level commitment: try it in a test environment first.
+- It is **self-hosted**. BlackSentinel does not host it for you, and paid plans are not on sale.
+- Change every default credential and secret before exposing anything to a network. Never deploy with the example values from `.env.example` or `.env.production`.
+- Use it only on systems you own or are explicitly authorized to test or monitor. See the [Acceptable Use Policy](https://blacksentinel.tech/acceptable-use/).
+
+## Support
+
+- Bugs and questions: [open an issue](https://github.com/BlackSentinel-Cibersecurity/blacksentinel-vision-free/issues) in this repository.
+- Security reports: follow [security.txt](https://blacksentinel.tech/.well-known/security.txt). Please do not open a public issue for a vulnerability.
+- Everything else: BlackSentinel-tech@protonmail.com
+
+## License
+
+MIT. See [LICENSE](LICENSE). The BlackSentinel name and logo are not covered by the licence.
