@@ -13,42 +13,33 @@
 > there's no server-side usage limit to enforce here; the module removal
 > above is the whole story for this repo.
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
-First, run the development server:
+### With Docker (recommended)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/BlackSentinel-Cibersecurity/blacksentinel-vision-free.git
+cd blacksentinel-vision-free
+./scripts/init-env.sh          # writes .env with a random ADMIN_PASSWORD and JWT_SECRET
+docker compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 and sign in as `admin` with the `ADMIN_PASSWORD` that
+`init-env.sh` printed (it is also in `.env`). There are no published default
+credentials: without `ADMIN_PASSWORD`, sign-in stays off.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### For development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm ci
+./scripts/init-env.sh
+npm run dev
+```
 
-## Learn More
+### In the browser, nothing to install
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open it in GitHub Codespaces from the repository page (**Code → Codespaces**): the
+dev container generates the secrets and starts the stack for you.
 
 ---
 
@@ -56,7 +47,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 - This is a **technical preview** and the open-source edition of the product. It comes with no warranty and no service-level commitment: try it in a test environment first.
 - It is **self-hosted**. BlackSentinel does not host it for you, and paid plans are not on sale.
-- Change every default credential and secret before exposing anything to a network. Never deploy with the example values from `.env.example` or `.env.production`.
+- There are no default credentials: `./scripts/init-env.sh` generates every secret. Never deploy with the example values from `.env.example` or `.env.production`.
 - Use it only on systems you own or are explicitly authorized to test or monitor. See the [Acceptable Use Policy](https://blacksentinel.tech/acceptable-use/).
 
 ## Support
