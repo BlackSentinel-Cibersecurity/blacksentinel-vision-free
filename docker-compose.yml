@@ -11,6 +11,10 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      # From .env (run scripts/init-env.sh): the operator password and the
+      # session-signing secret. There are no built-in defaults.
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - JWT_SECRET=${JWT_SECRET:-}
       - NEXT_PUBLIC_BSV_API_URL=${BSV_API_URL:-https://api.blacksentinel.com}
       - NEXT_PUBLIC_BSV_WS_URL=${BSV_WS_URL:-wss://ws.blacksentinel.com}
       - NEXT_PUBLIC_BSV_ENV=${BSV_ENV:-production}
@@ -29,7 +33,7 @@ services:
     image: redis:7-alpine
     container_name: bsv-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
@@ -45,7 +49,7 @@ services:
       POSTGRES_USER: bsv_admin
       POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
