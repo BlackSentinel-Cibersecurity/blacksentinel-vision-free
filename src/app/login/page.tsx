@@ -119,15 +119,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Default credentials info */}
+          {/* First sign-in info */}
           <div className="mt-6 p-4 rounded-lg bg-[#141414] border border-[#232323]">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="w-3.5 h-3.5 text-[#FF6B00]" />
-              <span className="text-[10px] text-[#3C3C3C] uppercase tracking-wider">Default Credentials</span>
+              <span className="text-[10px] text-[#3C3C3C] uppercase tracking-wider">First sign-in</span>
             </div>
-            <div className="text-xs text-[#D9D9D9]">
+            <div className="text-xs text-[#D9D9D9] leading-relaxed">
               <div>Username: <span className="font-mono text-[#FF6B00]">admin</span></div>
-              <div>Password: <span className="font-mono text-[#FF6B00]">blacksentinel</span></div>
+              <div>
+                Password: the <span className="font-mono text-[#FF6B00]">ADMIN_PASSWORD</span> in your{" "}
+                <span className="font-mono">.env</span>, created by{" "}
+                <span className="font-mono">./scripts/init-env.sh</span>.
+              </div>
             </div>
           </div>
 

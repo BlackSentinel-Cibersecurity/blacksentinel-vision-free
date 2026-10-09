@@ -1,90 +1,44 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
+import { randomBytes, timingSafeEqual } from "crypto";
 import jwt from "jsonwebtoken";
 
 // ============================================================================
-// SECURITY NOTICE — this is still a demo/stub auth layer, not a real user
-// store. It was previously WORSE than that: plaintext passwords compared
-// directly, and "JWT" tokens that were never actually signed (the code just
-// base64-encoded a hardcoded string "blacksentinel-secret" as if it were a
-// signature — anyone reading the source could forge an admin token without
-// ever calling this endpoint, since there was no real secret and no real
-// HMAC). Fixed here:
-//   - Passwords are now bcrypt hashes, never compared in plaintext.
-//   - Tokens are now real HMAC-signed JWTs via a required JWT_SECRET.
-// What is NOT fixed (out of scope for a security patch, needs a real design
-// decision): these 3 accounts are still a hardcoded in-memory array, not a
-// real user database — anyone with these credentials still gets in, and
-// there's no way to add/remove/rotate users without editing source. Replace
-// this with a real user store (e.g. the same Supabase-backed auth the main
-// website already uses) before this product is exposed to real customers.
+// Sign-in for the open-source edition: one operator account.
+//
+// SECURITY FIX: this used to hold three hard-coded demo accounts, and the
+// login page printed the admin password ("blacksentinel") for anyone to read.
+// The operator is now configured in .env (scripts/init-env.sh writes a random
+// ADMIN_PASSWORD); with no ADMIN_PASSWORD, sign-in stays off instead of
+// falling back to a known password.
+//
+// The signing secret no longer has a built-in fallback either: without a real
+// JWT_SECRET (32+ characters) each server process uses a random one, and
+// tokens end when it restarts. (Previously production threw on a missing
+// JWT_SECRET, which made every sign-in fail under docker compose.)
 // ============================================================================
 
-const JWT_SECRET = process.env.JWT_SECRET;
-// Skip the check during `next build` itself (NEXT_PHASE is set to
-// "phase-production-build" only for that build-time pass, never when the
-// server actually starts/serves requests via `next start`): this module is
-// imported while `next build` collects page data, before any real request
-// exists and before runtime secrets are necessarily injected, so throwing
-// during that pass would fail every build/CI run instead of only unsafe
-// production requests. The runtime guard below is unchanged.
-if (
-  !JWT_SECRET &&
-  process.env.NODE_ENV === "production" &&
-  process.env.NEXT_PHASE !== "phase-production-build"
-) {
-  throw new Error(
-    "JWT_SECRET is required in production. Refusing to start with no signing secret.",
-  );
-}
-// Dev-only fallback so `next dev` keeps working without extra setup; never
-// reached in production because of the throw above.
-const SIGNING_SECRET = JWT_SECRET || "dev-only-insecure-secret-do-not-deploy";
-
-interface DemoUser {
-  username: string;
-  passwordHash: string;
-  role: string;
-  name: string;
-  email: string;
-  permissions: string[];
+function signingSecret(): string {
+  const value = process.env.JWT_SECRET?.trim();
+  if (value && value.length >= 32 && !/change|your[-_]|example|placeholder|insecure|dev[-_]/i.test(value)) {
+    return value;
+  }
+  return randomBytes(32).toString("hex");
 }
 
-const users: DemoUser[] = [
-  {
-    username: "admin",
-    // bcrypt hash of the original demo password — kept for continuity of
-    // the demo accounts, never stored/compared as plaintext now.
-    passwordHash: "$2a$12$j6k99ALPsjp6amLABmUPr.8EYAfHvlfdTDCh3TSyJE6J0UN4eySHK",
-    role: "admin",
-    name: "Administrator",
-    email: "admin@blacksentinel.com",
-    permissions: ["read", "write", "admin", "export", "configure"],
-  },
-  {
-    username: "analyst",
-    passwordHash: "$2a$12$WIYnFOyktyPV5CC/1Dyrw..Ly.vpBVi6pWZlVRtnIs70EP0mZwT/u",
-    role: "analyst",
-    name: "Threat Analyst",
-    email: "analyst@blacksentinel.com",
-    permissions: ["read", "write", "export"],
-  },
-  {
-    username: "viewer",
-    passwordHash: "$2a$12$/IlA0RUTA2t5s5tS..mE3uQRnzE07mQaIDJhjE5/fjV5AYEHxHFfm",
-    role: "viewer",
-    name: "Read Only User",
-    email: "viewer@blacksentinel.com",
-    permissions: ["read"],
-  },
-];
+const SIGNING_SECRET = signingSecret();
 
-function generateToken(user: DemoUser): string {
-  return jwt.sign(
-    { sub: user.username, role: user.role, permissions: user.permissions },
-    SIGNING_SECRET,
-    { expiresIn: "24h" },
-  );
+const OPERATOR = {
+  username: (process.env.ADMIN_USERNAME || "admin").trim(),
+  role: "admin",
+  name: "Administrator",
+  email: (process.env.ADMIN_EMAIL || "admin@blacksentinel.local").trim(),
+  permissions: ["read", "write", "admin", "export", "configure"],
+};
+
+function sameSecret(given: string, expected: string): boolean {
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export async function POST(request: Request) {
@@ -99,34 +53,31 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const user = users.find((u) => u.username === username);
-    // Always run bcrypt.compare, even when the user isn't found, against a
-    // fixed dummy hash — comparing only on a match would let a timing
-    // difference (real hash check vs. instant return) leak which usernames
-    // exist.
-    const isValid = user
-      ? await bcrypt.compare(password, user.passwordHash)
-      : await bcrypt.compare(password, "$2a$12$j6k99ALPsjp6amLABmUPr.8EYAfHvlfdTDCh3TSyJE6J0UN4eySHK");
+    const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+    if (!adminPassword || adminPassword.length < 12) {
+      return NextResponse.json({
+        success: false,
+        message: "Sign-in is not configured. Set ADMIN_PASSWORD (12+ characters) in .env; scripts/init-env.sh creates one.",
+      }, { status: 503 });
+    }
 
-    if (!user || !isValid) {
+    if (username.trim() !== OPERATOR.username || !sameSecret(password, adminPassword)) {
       return NextResponse.json({
         success: false,
         message: "Invalid username or password",
       }, { status: 401 });
     }
 
-    const token = generateToken(user);
+    const token = jwt.sign(
+      { sub: OPERATOR.username, role: OPERATOR.role, permissions: OPERATOR.permissions },
+      SIGNING_SECRET,
+      { expiresIn: "24h" },
+    );
 
     return NextResponse.json({
       success: true,
       token,
-      user: {
-        username: user.username,
-        role: user.role,
-        name: user.name,
-        email: user.email,
-        permissions: user.permissions,
-      },
+      user: OPERATOR,
     });
   } catch {
     return NextResponse.json({
